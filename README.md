@@ -7,15 +7,15 @@ koi
 
 Noteworthy:
 
-* image loader: [koi_image.h](koi_image.h)
-* image writer: [koi_image_write.h](koi_image_write.h)
+* image loader: [koi_image.h](https://github.com/Muppetsg2/koi/blob/main/koi_image.h)
+* image writer: [koi_image_write.h](https://github.com/Muppetsg2/koi/blob/main/koi_image_write.h)
 
 <a name="koi_libs"></a>
 
 library    | lastest version | category | LoC | description
 --------------------- | ---- | -------- | --- | --------------------------------
-**[koi_image.h](koi_image.h)** | 1.00 | graphics | 1331 | image loading/decoding from file/memory: QOI
-**[koi_image_write.h](koi_image_write.h)** | 1.00 | graphics | 803 | image writing to disk: QOI
+**[koi_image.h](https://github.com/Muppetsg2/koi/blob/main/koi_image.h)** | 1.00 | graphics | 1331 | image loading/decoding from file/memory: QOI
+**[koi_image_write.h](https://github.com/Muppetsg2/koi/blob/main/koi_image_write.h)** | 1.00 | graphics | 803 | image writing to disk: QOI
 
 Total libraries: 2
 Total lines of C code: 2134
@@ -107,11 +107,10 @@ but the difference between 2 files and 1 file is a big deal.
 You don't need to zip or tar the files up, you don't have to
 remember to attach *two* files, etc.
 
-#### Why not fork the stb repository and add new image formats there?
+#### Why not fork the koi repository and add new image formats there?
 
 First, why fork a large repository when you're only 
 interested in modifying two files? Second, I don’t want this project
-to be tightly coupled to changes in the stb repository. The main idea
+to be tightly coupled to changes in the koi repository. The main idea
 behind this repo is to add support for additional image formats — both decoders
-and encoders — to [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h) and [stb_image_write.h](https://github.com/nothings/stb/blob/master/stb_image_write.h), 
-which we know won’t be included upstream due to security reasons.
+and encoders — to [koi_image.h](https://github.com/Muppetsg2/koi/blob/main/koi_image.h) and [koi_image_write.h](https://github.com/Muppetsg2/koi/blob/main/koi_image_write.h).
