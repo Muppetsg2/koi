@@ -392,7 +392,7 @@ typedef int32_t  koi__int32;
 #endif
 
 // should produce compiler error if size is wrong
-typedef unsigned char validate_uint32[sizeof(koi__uint32) == 4 ? 1 : -1];
+typedef unsigned char koi_validate_uint32[sizeof(koi__uint32) == 4 ? 1 : -1];
 
 #ifdef _MSC_VER
 #define KOI_NOTUSED(v)  (void)(v)
@@ -1059,7 +1059,7 @@ static float *koi__ldr_to_hdr(koi_uc *data, int x, int y, int comp)
 
 static int koi__qoi_test_raw(koi__context* s)
 {
-    int i, size = s->img_buffer_original_end - s->img_buffer_original;
+    int size = s->img_buffer_original_end - s->img_buffer_original;
     if (size < 14 + 8) return 0; // QOI header size 14 bytes and 8 bytes padding
     if (koi__get8(s) != 'q') return 0;
     if (koi__get8(s) != 'o') return 0;
