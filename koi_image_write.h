@@ -278,7 +278,7 @@ typedef uint32_t koi__uint32;
 #endif
 
 // should produce compiler error if size is wrong
-typedef int validate_uint32[sizeof(koiw__uint32) == 4 ? 1 : -1];
+typedef int koiw_validate_uint32[sizeof(koiw__uint32) == 4 ? 1 : -1];
 
 typedef struct
 {
@@ -628,8 +628,8 @@ static koiw__qoi_pixel koi_read_qoi_pixel(int comp, int has_alpha, koiw_uc* d)
 static int koi_write_qoi_core(koi__write_context* s, int x, int y, int comp, const void* data)
 {
     int has_alpha = (comp == 2 || comp == 4);
-    int pxi, i, j, jstart, jdir, index_pos;
-    koiw__uint32 len;
+    int i, j, jstart, jdir, index_pos;
+    koiw__uint32 pxi, len;
     koiw_uc run = 0;
     koiw__qoi_pixel px, prev_px, index[64];
 
