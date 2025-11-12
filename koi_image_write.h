@@ -678,7 +678,7 @@ static int koi_write_qoi_core(koi__write_context* s, int x, int y, int comp, con
                 run = 0;
             }
 
-            index_pos = KOIW_QOI_COLOR_HASH(px) % 64;
+            index_pos = KOIW_QOI_COLOR_HASH(px) & (64 - 1);
             if (index[index_pos].v == px.v) {
                 koiw__write1(s, KOIW_UCHAR(index_pos)); /*QOI_OP_INDEX*/
             }
