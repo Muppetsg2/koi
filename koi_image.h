@@ -1178,7 +1178,7 @@ static void* koi__qoi_load(koi__context* s, int* x, int* y, int* comp, int req_c
             }
             else if (t == 0xc0 /*QOI_OP_RUN*/) {
                 koi_uc run = (tag ^ 0xc0) + 1;
-                index[KOI_QOI_COLOR_HASH(prev_px) % 64] = prev_px;
+                index[KOI_QOI_COLOR_HASH(prev_px) & (64 - 1)] = prev_px;
                 while (run--) {
                     out[pos++] = prev_px.r;
                     out[pos++] = prev_px.g;
