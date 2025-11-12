@@ -1,7 +1,7 @@
 koi
 ===
 
-[stb](https://github.com/nothings/stb) like single-file public domain (or MIT licensed) image processing libraries for C/C++
+[stb](https://github.com/nothings/stb)-like single-file, public domain (or MIT-licensed) image processing libraries for C/C++
 
 # This project discusses security-relevant bugs in public in Github Issues and Pull Requests, and it may take significant time for security fixes to be implemented or merged. If this poses an unreasonable risk to your project, do not use koi libraries.
 
