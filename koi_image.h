@@ -39,7 +39,7 @@ RECENT REVISION HISTORY:
    See end of file for full revision history.
 
 
- ============================   Contributors   =========================
+ ============================    Contributors    =========================
 
    Image formats
       Marceli Antosik (qoi)
