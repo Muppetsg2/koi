@@ -1,13 +1,14 @@
 cmake_minimum_required(VERSION 3.15)
 
-set(KOI_VERSION 1.00)
+set(KOI_VERSION 1.02)
 set(KOI_SOVERSION 1)
 
 project(koi 
         VERSION ${KOI_VERSION}
         LANGUAGES C 
         DESCRIPTION "stb-like single-file, public domain (or MIT-licensed) image processing libraries for C/C++" 
-        HOMEPAGE_URL https://github.com/Muppetsg2/koi)
+        HOMEPAGE_URL https://github.com/Muppetsg2/koi
+)
 
 # Configuration Options
 option(KOI_ENABLE_IMAGE "Enable koi_image.h" ON)

@@ -1,4 +1,4 @@
-/* koi_image - v1.01 - public domain stb like image loader 
+/* koi_image - v1.02 - public domain stb like image loader 
                for more extensions - https://github.com/Muppetsg2/koi
                      no warranty implied; use at your own risk
 
@@ -33,6 +33,7 @@ LICENSE
 
 RECENT REVISION HISTORY:
 
+      1.02  (2026-04-30) Improved memory safety and made Windows file handling more robust
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file loader
 
@@ -589,14 +590,14 @@ static int koi__mad4sizes_valid(int a, int b, int c, int d, int add)
 static void *koi__malloc_mad3(int a, int b, int c, int add)
 {
    if (!koi__mad3sizes_valid(a, b, c, add)) return NULL;
-   return koi__malloc(a * b * c + add);
+   return koi__malloc((size_t)a * b * c + add);
 }
 
 #if !defined(KOI_NO_LINEAR)
 static void *koi__malloc_mad4(int a, int b, int c, int d, int add)
 {
    if (!koi__mad4sizes_valid(a, b, c, d, add)) return NULL;
-   return koi__malloc(a * b * c * d + add);
+   return koi__malloc((size_t)a * b * c * d + add);
 }
 #endif
 
@@ -654,7 +655,7 @@ static void *koi__load_main(koi__context *s, int *x, int *y, int *comp, int req_
    ri->num_channels = 0;
 
    #if !defined(KOI_NO_QOI)
-   if (koi__qoi_test(s))  return koi__qoi_load(s, x, y, comp, req_comp, ri);
+   if (koi__qoi_test(s)) return koi__qoi_load(s, x, y, comp, req_comp, ri);
    #endif
 
    return koi__errpuc("unknown image type", "Image not of any known type, or corrupt");
@@ -663,12 +664,16 @@ static void *koi__load_main(koi__context *s, int *x, int *y, int *comp, int req_
 static koi__uint16 *koi__convert_8_to_16(koi_uc *orig, int w, int h, int channels)
 {
    int i;
-   int img_len = w * h * channels;
+   int img_len;
    koi__uint16 *enlarged;
 
-   enlarged = (koi__uint16*)koi__malloc(img_len * 2);
-   if (enlarged == NULL) return (koi__uint16*)koi__errpuc("outofmem", "Out of memory");
+   enlarged = (koi__uint16*)koi__malloc_mad4(w, h, channels, 2, 0);
+   if (enlarged == NULL) {
+       KOI_FREE(orig);
+       return (koi__uint16*)koi__errpuc("outofmem", "Out of memory");
+   }
 
+   img_len = w * h * channels;
    for (i = 0; i < img_len; ++i)
      enlarged[i] = (koi__uint16)((orig[i] << 8) + orig[i]); // replicate to high and low byte, maps 0->0, 255->0xffff
 
@@ -685,7 +690,7 @@ static void koi__vertical_flip(void *image, int w, int h, int bytes_per_pixel)
 
    for (row = 0; row < (h >> 1); row++) {
       koi_uc *row0 = bytes + row * bytes_per_row;
-      koi_uc *row1 = bytes + (h - row - 1) * bytes_per_row;
+      koi_uc *row1 = bytes + (size_t)(h - row - 1) * bytes_per_row;
       // swap row0 with row1
       size_t bytes_left = bytes_per_row;
       while (bytes_left) {
@@ -761,7 +766,8 @@ KOI_EXTERN __declspec(dllimport) int __stdcall WideCharToMultiByte(unsigned int 
 
 KOIDEF int koi_convert_wchar_to_utf8(char *buffer, size_t bufferlen, const wchar_t *input)
 {
-   return WideCharToMultiByte(65001 /* UTF8 */, 0, input, -1, buffer, (int)bufferlen, NULL, NULL);
+   int len = (bufferlen > 0x7FFFFFFF) ? 0x7FFFFFFF : (int)bufferlen;
+   return WideCharToMultiByte(65001 /* UTF8 */, 0, input, -1, buffer, len, NULL, NULL);
 }
 #endif
 
@@ -770,23 +776,23 @@ static FILE *koi__fopen(char const *filename, char const *mode)
    FILE *f;
 #if defined(_WIN32) && defined(KOI_WINDOWS_UTF8)
    wchar_t wMode[64];
-   wchar_t wFilename[1024];
-	if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, filename, -1, wFilename, sizeof(wFilename) / sizeof(*wFilename)))
-      return 0;
+   wchar_t wFilename[4096];
+	if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, filename, -1, wFilename, (int)(sizeof(wFilename) / sizeof(*wFilename))))
+      return NULL;
    
-   if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, mode, -1, wMode, sizeof(wMode) / sizeof(*wMode)))
-      return 0;
+   if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, mode, -1, wMode, (int)(sizeof(wMode) / sizeof(*wMode))))
+      return NULL;
 
    #if defined(_MSC_VER) && _MSC_VER >= 1400
    if (0 != _wfopen_s(&f, wFilename, wMode))
-      f = 0;
+      f = NULL;
    #else
    f = _wfopen(wFilename, wMode);
    #endif
 
 #elif defined(_MSC_VER) && _MSC_VER >= 1400
    if (0 != fopen_s(&f, filename, mode))
-      f = 0;
+      f = NULL;
 #else
    f = fopen(filename, mode);
 #endif
@@ -797,7 +803,7 @@ KOIDEF koi_uc *koi_load(char const *filename, int *x, int *y, int *comp, int req
 {
    FILE *f = koi__fopen(filename, "rb");
    unsigned char *result;
-   if (!f) return koi__errpuc("can't fopen", "Unable to open file");
+   if (f == NULL) return koi__errpuc("can't fopen", "Unable to open file");
    result = koi_load_from_file(f, x, y, comp, req_comp);
    fclose(f);
    return result;
@@ -833,7 +839,7 @@ KOIDEF koi_us *koi_load_16(char const *filename, int *x, int *y, int *comp, int 
 {
    FILE *f = koi__fopen(filename, "rb");
    koi__uint16 *result;
-   if (!f) return (koi_us*)koi__errpuc("can't fopen", "Unable to open file");
+   if (f == NULL) return (koi_us*)koi__errpuc("can't fopen", "Unable to open file");
    result = koi_load_from_file_16(f, x, y, comp, req_comp);
    fclose(f);
    return result;
@@ -898,7 +904,7 @@ KOIDEF float *koi_loadf(char const *filename, int *x, int *y, int *comp, int req
 {
    float *result;
    FILE *f = koi__fopen(filename, "rb");
-   if (!f) return koi__errpf("can't fopen", "Unable to open file");
+   if (f == NULL) return koi__errpf("can't fopen", "Unable to open file");
    result = koi_loadf_from_file(f, x, y, comp, req_comp);
    fclose(f);
    return result;
@@ -988,7 +994,7 @@ static unsigned char *koi__convert_format(unsigned char *data, int img_n, int re
    if (req_comp == img_n) return data;
    KOI_ASSERT(req_comp >= 1 && req_comp <= 4);
 
-   good = (unsigned char*)koi__malloc_mad3(req_comp, x, y, 0);
+   good = (unsigned char*)koi__malloc_mad3(x, y, req_comp, 0);
    if (good == NULL) {
       KOI_FREE(data);
       return koi__errpuc("outofmem", "Out of memory");
@@ -1030,9 +1036,12 @@ static float *koi__ldr_to_hdr(koi_uc *data, int x, int y, int comp)
 {
    int i, k, n;
    float *output;
-   if (!data) return NULL;
+   if (data == NULL) return NULL;
    output = (float*)koi__malloc_mad4(x, y, comp, sizeof(float), 0);
-   if (output == NULL) { KOI_FREE(data); return koi__errpf("outofmem", "Out of memory"); }
+   if (output == NULL) {
+       KOI_FREE(data);
+       return koi__errpf("outofmem", "Out of memory");
+   }
    // compute number of non-alpha components
    if (comp & 1) n = comp; else n = comp - 1;
    for (i = 0; i < x * y; ++i) {
@@ -1106,8 +1115,7 @@ typedef struct {
 static void *koi__qoi_load(koi__context *s, int *x, int *y, int *comp, int req_comp, koi__result_info *ri)
 {
    koi_uc *out;
-   koi__qoi_pixel prev_px;
-   koi__qoi_pixel index[64];
+   koi__qoi_pixel index[64], prev_px;
    koi__uint32 i, pos, len;
    koi_uc target;
    koi__qoi_data info;
@@ -1127,11 +1135,8 @@ static void *koi__qoi_load(koi__context *s, int *x, int *y, int *comp, int req_c
       target = s->img_n;         // if they want monochrome, we'll post-convert
 
    // sanity-check size
-   if (!koi__mad3sizes_valid(target, s->img_x, s->img_y, 0))
-      return koi__errpuc("too large", "Corrupt QOI");
-
-   out = (koi_uc*)koi__malloc_mad3(target, s->img_x, s->img_y, 0);
-   if (!out) return koi__errpuc("outofmem", "Out of memory");
+   out = (koi_uc*)koi__malloc_mad3(s->img_x, s->img_y, target, 0);
+   if (out == NULL) return koi__errpuc("outofmem", "Out of memory");
 
    prev_px.r = 0;
    prev_px.g = 0;
@@ -1244,7 +1249,7 @@ KOIDEF int koi_info(char const *filename, int *x, int *y, int *comp)
 {
    FILE *f = koi__fopen(filename, "rb");
    int result;
-   if (!f) return koi__err("can't fopen", "Unable to open file");
+   if (f == NULL) return koi__err("can't fopen", "Unable to open file");
    result = koi_info_from_file(f, x, y, comp);
    fclose(f);
    return result;
@@ -1280,6 +1285,7 @@ KOIDEF int koi_info_from_callbacks(koi_io_callbacks const *c, void *user, int *x
 
 /*
    revision history:
+      1.02  (2026-04-30) Improved memory safety and made Windows file handling more robust
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file loader
 */

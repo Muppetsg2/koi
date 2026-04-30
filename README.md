@@ -14,11 +14,11 @@ Noteworthy:
 
 library    | lastest version | category | LoC | description
 --------------------- | ---- | -------- | --- | --------------------------------
-**[koi_image.h](https://github.com/Muppetsg2/koi/blob/main/koi_image.h)** | 1.01 | graphics | 1331 | image loading/decoding from file/memory: QOI
-**[koi_image_write.h](https://github.com/Muppetsg2/koi/blob/main/koi_image_write.h)** | 1.01 | graphics | 810 | image writing to disk: QOI
+**[koi_image.h](https://github.com/Muppetsg2/koi/blob/main/koi_image.h)** | 1.02 | graphics | 1337 | image loading/decoding from file/memory: QOI
+**[koi_image_write.h](https://github.com/Muppetsg2/koi/blob/main/koi_image_write.h)** | 1.02 | graphics | 814 | image writing to disk: QOI
 
 Total libraries: 2
-Total lines of C code: 2134
+Total lines of C code: 2151
 
 
 FAQ

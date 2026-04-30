@@ -28,6 +28,7 @@ LICENSE
 
 RECENT REVISION HISTORY:
 
+      1.02  (2026-04-30) Improved file handling
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file writer
 
@@ -385,7 +386,8 @@ KOIW_EXTERN __declspec(dllimport) int __stdcall WideCharToMultiByte(unsigned int
 
 KOIWDEF int koiw_convert_wchar_to_utf8(char *buffer, size_t bufferlen, const wchar_t *input)
 {
-   return WideCharToMultiByte(65001 /* UTF8 */, 0, input, -1, buffer, (int)bufferlen, NULL, NULL);
+   int len = (bufferlen > 0x7FFFFFFF) ? 0x7FFFFFFF : (int)bufferlen;
+   return WideCharToMultiByte(65001 /* UTF8 */, 0, input, -1, buffer, len, NULL, NULL);
 }
 #endif
 
@@ -394,23 +396,23 @@ static FILE *koiw__fopen(char const *filename, char const *mode)
    FILE *f;
 #if defined(_WIN32) && defined(KOI_WRITE_WINDOWS_UTF8)
    wchar_t wMode[64];
-   wchar_t wFilename[1024];
-   if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, filename, -1, wFilename, sizeof(wFilename) / sizeof(*wFilename)))
-      return 0;
+   wchar_t wFilename[4096];
+   if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, filename, -1, wFilename, (int)(sizeof(wFilename) / sizeof(*wFilename))))
+      return NULL;
 
-   if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, mode, -1, wMode, sizeof(wMode) / sizeof(*wMode)))
-      return 0;
+   if (0 == MultiByteToWideChar(65001 /* UTF8 */, 0, mode, -1, wMode, (int)(sizeof(wMode) / sizeof(*wMode))))
+      return NULL;
 
    #if defined(_MSC_VER) && _MSC_VER >= 1400
    if (0 != _wfopen_s(&f, wFilename, wMode))
-      f = 0;
+      f = NULL;
    #else
    f = _wfopen(wFilename, wMode);
    #endif
 
 #elif defined(_MSC_VER) && _MSC_VER >= 1400
    if (0 != fopen_s(&f, filename, mode))
-      f = 0;
+      f = NULL;
 #else
    f = fopen(filename, mode);
 #endif
@@ -420,8 +422,9 @@ static FILE *koiw__fopen(char const *filename, char const *mode)
 static int koi__start_write_file(koi__write_context *s, const char *filename)
 {
    FILE *f = koiw__fopen(filename, "wb");
+   if (f == NULL) return koiw__err("can't fopen", "Unable to open file");
    koi__start_write_callbacks(s, koi__stdio_write, (void*)f);
-   return f != NULL ? 1 : koiw__err("wrong path", "Couldn't open file");
+   return 1;
 }
 
 static void koi__end_write_file(koi__write_context *s)
@@ -734,7 +737,7 @@ static int koi_write_qoi_core(koi__write_context *s, int x, int y, int comp, con
 
 KOIWDEF int koi_write_qoi_to_func(koi_write_func *func, void *context, int x, int y, int comp, const void *data)
 {
-   koi__write_context s = { 0 };
+   koi__write_context s;
    koi__start_write_callbacks(&s, func, context);
    return koi_write_qoi_core(&s, x, y, comp, data);
 }
@@ -742,7 +745,7 @@ KOIWDEF int koi_write_qoi_to_func(koi_write_func *func, void *context, int x, in
 #if !defined(KOI_WRITE_NO_STDIO)
 KOIWDEF int koi_write_qoi(char const *filename, int x, int y, int comp, const void *data)
 {
-   koi__write_context s = { 0 };
+   koi__write_context s;
    if (koi__start_write_file(&s, filename)) {
       int r = koi_write_qoi_core(&s, x, y, comp, data);
       koi__end_write_file(&s);
@@ -759,6 +762,7 @@ KOIWDEF int koi_write_qoi(char const *filename, int x, int y, int comp, const vo
 
 /*
    revision history:
+      1.02  (2026-04-30) Improved file handling
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file writer
 */
