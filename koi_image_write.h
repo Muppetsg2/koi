@@ -1,4 +1,4 @@
-/* koi_image_write - v1.01 - public domain stb like image writer
+/* koi_image_write - v1.03 - public domain stb like image writer
                                     to C stdio - https://github.com/Muppetsg2/koi
                                     no warranty implied; use at your own risk
    
@@ -28,6 +28,7 @@ LICENSE
 
 RECENT REVISION HISTORY:
 
+      1.03  (2026-07-24) Improved writer state initialization and integer handling
       1.02  (2026-04-30) Improved file handling
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file writer
@@ -293,6 +294,7 @@ static void koi__start_write_callbacks(koi__write_context *s, koi_write_func *c,
 {
    s->func = c;
    s->context = context;
+   s->buf_used = 0;
 }
 
 static
@@ -665,7 +667,7 @@ static int koi_write_qoi_core(koi__write_context *s, int x, int y, int comp, con
       jstart = 0;
       jdir = 1;
    }
-   len = x * y;
+   len = (koiw__uint32)x * y;
    for (pxi = 0; pxi < len; ++pxi) {
       j = jstart + (pxi / x) * jdir;
       i = pxi % x;
@@ -762,6 +764,7 @@ KOIWDEF int koi_write_qoi(char const *filename, int x, int y, int comp, const vo
 
 /*
    revision history:
+      1.03  (2026-07-24) Improved writer state initialization and integer handling
       1.02  (2026-04-30) Improved file handling
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file writer

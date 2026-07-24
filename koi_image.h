@@ -1,4 +1,4 @@
-/* koi_image - v1.02 - public domain stb like image loader 
+/* koi_image - v1.03 - public domain stb like image loader 
                for more extensions - https://github.com/Muppetsg2/koi
                      no warranty implied; use at your own risk
 
@@ -33,6 +33,7 @@ LICENSE
 
 RECENT REVISION HISTORY:
 
+      1.03  (2026-07-24) Fixed integer conversion warning in QOI loader
       1.02  (2026-04-30) Improved memory safety and made Windows file handling more robust
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file loader
@@ -1067,7 +1068,7 @@ static float *koi__ldr_to_hdr(koi_uc *data, int x, int y, int comp)
 #if !defined(KOI_NO_QOI)
 static int koi__qoi_test_raw(koi__context *s)
 {
-   int size = s->img_buffer_original_end - s->img_buffer_original;
+   int size = (int)(s->img_buffer_original_end - s->img_buffer_original);
    if (size < 14 + 8) return 0; // QOI header size 14 bytes and 8 bytes padding
    if (koi__get8(s) != 'q') return 0;
    if (koi__get8(s) != 'o') return 0;
@@ -1285,6 +1286,7 @@ KOIDEF int koi_info_from_callbacks(koi_io_callbacks const *c, void *user, int *x
 
 /*
    revision history:
+      1.03  (2026-07-24) Fixed integer conversion warning in QOI loader
       1.02  (2026-04-30) Improved memory safety and made Windows file handling more robust
       1.01  (2025-11-20) Unified formatting of functions and tabs
       1.00  (2025-05-09) QOI file loader

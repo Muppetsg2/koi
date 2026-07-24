@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-set(KOI_VERSION 1.02)
+set(KOI_VERSION 1.03)
 set(KOI_SOVERSION 1)
 
 project(koi 

@@ -5,7 +5,7 @@ Pull Requests and Issues are both welcome.
 General priority order is:
 
 * Crashes
-* Security issues in stb_image
+* Security issues in koi_image
 * Bugs
 * Security concerns in other libs
 * Warnings
