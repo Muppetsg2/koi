@@ -1,4 +1,4 @@
-/* koi_image - v1.04 - public domain stb like image loader
+/* koi_image - v1.05 - public domain stb like image loader
                for more extensions - https://github.com/Muppetsg2/koi
                no warranty implied; use at your own risk
 
@@ -33,6 +33,7 @@ LICENSE
 
 RECENT REVISION HISTORY:
 
+      1.05  (2026-10-19) Fixed short callback reads, FILE* position after loading and koi_loadf failure reason
       1.04  (2026-10-18) Fixed QOI run overflow, truncated data and 16-bit NULL handling, build fixes, unified formatting
       1.03  (2026-07-24) Fixed integer conversion warning in QOI loader
       1.02  (2026-04-30) Improved memory safety and made Windows file handling more robust
@@ -255,7 +256,7 @@ KOIDEF koi_uc *koi_load_from_callbacks (koi_io_callbacks const *clbk, void *user
 #if !defined(KOI_NO_STDIO)
 KOIDEF koi_uc *koi_load                (char const *filename, int *x, int *y, int *channels_in_file, int desired_channels);
 KOIDEF koi_uc *koi_load_from_file      (FILE *f, int *x, int *y, int *channels_in_file, int desired_channels);
-// for koi_load_from_file, file pointer is left pointing immediately after image
+// for koi_load_from_file, file pointer is left pointing immediately after image (after the QOI end marker)
 #endif // !KOI_NO_STDIO
 
 #if defined(KOI_WINDOWS_UTF8)
@@ -868,9 +869,9 @@ KOIDEF koi_uc *koi_load_from_callbacks(koi_io_callbacks const *clbk, void *user,
 static float *koi__loadf_main(koi__context *s, int *x, int *y, int *channels_in_file, int desired_channels)
 {
    unsigned char *const data = koi__load_and_postprocess_8bit(s, x, y, channels_in_file, desired_channels);
-   if (data)
-      return koi__ldr_to_hdr(data, *x, *y, desired_channels ? desired_channels : *channels_in_file);
-   return koi__errpf("unknown image type", "Image not of any known type, or corrupt");
+   if (data == NULL)
+      return NULL;
+   return koi__ldr_to_hdr(data, *x, *y, desired_channels ? desired_channels : *channels_in_file);
 }
 
 KOIDEF float *koi_loadf_from_memory(koi_uc const *buffer, int len, int *x, int *y, int *channels_in_file, int desired_channels)
@@ -927,7 +928,14 @@ enum
 
 static void koi__refill_buffer(koi__context *s)
 {
-   const int n = (s->io.read)(s->io_user_data, (char*)s->buffer_start, s->buflen);
+   int n = 0;
+   // keep reading until the buffer is full or the stream ends: a callback may return fewer
+   // bytes than requested, and the format tests and koi__rewind need a filled first buffer
+   while (n < s->buflen) {
+      const int r = (s->io.read)(s->io_user_data, (char*)s->buffer_start + n, s->buflen - n);
+      if (r <= 0) break;
+      n += r;
+   }
    s->callback_already_read += (int)(s->img_buffer - s->img_buffer_original);
    if (n == 0) {
       // at end of file, treat same as if from memory, but need to handle case
@@ -1204,6 +1212,10 @@ static void *koi__qoi_load(koi__context *s, int *x, int *y, int *channels_in_fil
 
 #undef KOI_QOI_COLOR_HASH
 
+   // consume the 8-byte end marker, so koi_load_from_file leaves the FILE* right after the image
+   for (i = 0; i < 8; ++i)
+      koi__get8(s);
+
    if (desired_channels && desired_channels != target) {
       out = koi__convert_format(out, target, desired_channels, s->img_x, s->img_y);
       if (out == NULL) return out; // koi__convert_format frees input on failure
@@ -1281,6 +1293,10 @@ KOIDEF int koi_info_from_callbacks(koi_io_callbacks const *clbk, void *user, int
 
 /*
    revision history:
+      1.05  (2026-10-19) Read callbacks returning fewer bytes than requested are now handled (QOI was not
+                         detected when the first read returned fewer than 22 bytes; negative returns are end of stream)
+                         koi_load_from_file now leaves the FILE* after the QOI end marker, as documented
+                         koi_loadf keeps the failure reason of the decoder (reported "unknown image type" on out of memory)
       1.04  (2026-10-18) QOI: QOI_OP_RUN can no longer write past the end of the output buffer
                          QOI: truncated data and 0-pixel images are now rejected
                          Fixed NULL dereference in 16-bit loading when 8->16 conversion fails
